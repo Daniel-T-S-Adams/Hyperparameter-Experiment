@@ -1,0 +1,21 @@
+adamw:
+  lr:
+    min: 1.0e-05
+    max: 3.0e-02
+    scale: log
+  beta1:
+    min: 0.85
+    max: 0.99
+    scale: uniform
+  beta2:
+    min: 0.9
+    max: 0.9999
+    scale: uniform
+  eps:
+    min: 1.0e-09
+    max: 1.0e-06
+    scale: log
+  weight_decay:
+    min: 1.0e-06
+    max: 1.0e-02
+    scale: log

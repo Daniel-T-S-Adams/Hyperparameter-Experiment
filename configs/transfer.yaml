@@ -1,0 +1,6 @@
+phase: transfer
+output_dir: runs/transfer
+
+transfer:
+  seeds: [1, 2, 3, 4, 5]
+  phase_b_dir: runs/phase_b

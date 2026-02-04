@@ -1,0 +1,16 @@
+two_layer_widths:
+  - [256, 128]
+  - [192, 192]
+
+three_layer_widths:
+  - [256, 128, 128]
+  - [192, 192, 128]
+
+dropouts:
+  - 0.1
+  - 0.2
+  - 0.3
+
+leaky_relu_alphas:
+  - 0.015
+  - 0.045
