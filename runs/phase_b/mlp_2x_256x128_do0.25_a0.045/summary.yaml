@@ -1,0 +1,13 @@
+architecture:
+  name: mlp_2x_256x128_do0.25_a0.045
+  layers:
+  - 256
+  - 128
+  dropout: 0.25
+  leaky_relu_alpha: 0.045
+best_validation_loss: 0.06955611821413041
+test_loss_stats:
+  mean: 0.06859030474185943
+  var: 1.7191334667748927e-06
+  min: 0.06724640353918075
+  max: 0.0709011945605278

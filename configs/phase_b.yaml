@@ -1,5 +1,5 @@
 phase: phase_b
-output_dir: runs/phase_b
+output_dir: runs/phase_b_run2
 
 search:
   num_trials: 30

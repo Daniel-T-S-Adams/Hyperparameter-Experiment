@@ -27,29 +27,19 @@ def _architecture_name(layers: List[int], dropout: float, alpha: float) -> str:
 def generate_architectures(arch_cfg: Dict) -> List[Dict]:
     architectures: List[Dict] = []
 
-    for layers in arch_cfg["two_layer_widths"]:
-        for dropout in arch_cfg["dropouts"]:
-            for alpha in arch_cfg["leaky_relu_alphas"]:
-                architectures.append(
-                    {
-                        "name": _architecture_name(layers, dropout, alpha),
-                        "layers": layers,
-                        "dropout": dropout,
-                        "leaky_relu_alpha": alpha,
-                    }
-                )
-
-    for layers in arch_cfg["three_layer_widths"]:
-        for dropout in arch_cfg["dropouts"]:
-            for alpha in arch_cfg["leaky_relu_alphas"]:
-                architectures.append(
-                    {
-                        "name": _architecture_name(layers, dropout, alpha),
-                        "layers": layers,
-                        "dropout": dropout,
-                        "leaky_relu_alpha": alpha,
-                    }
-                )
+    layer_keys = [key for key in arch_cfg.keys() if key.endswith("_layer_widths")]
+    for key in layer_keys:
+        for layers in arch_cfg[key]:
+            for dropout in arch_cfg["dropouts"]:
+                for alpha in arch_cfg["leaky_relu_alphas"]:
+                    architectures.append(
+                        {
+                            "name": _architecture_name(layers, dropout, alpha),
+                            "layers": layers,
+                            "dropout": dropout,
+                            "leaky_relu_alpha": alpha,
+                        }
+                    )
 
     return architectures
 
@@ -272,11 +262,15 @@ def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.dev
 
     overall_summary = []
 
+    rng = random.Random(cfg["search"]["seed"])
+    hparam_trials = [
+        sample_adamw(search_space["adamw"], rng) for _ in range(cfg["search"]["num_trials"])
+    ]
+
     for arch in architectures:
         arch_dir = os.path.join(output_dir, arch["name"])
         ensure_dir(arch_dir)
 
-        rng = random.Random(cfg["search"]["seed"])
         best_val_loss = float("inf")
         best_hparams = None
         best_history = None
@@ -289,7 +283,7 @@ def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.dev
             trial_label = (
                 f"phase_b {arch['name']} trial {trial_idx + 1}/{cfg['search']['num_trials']}"
             )
-            hparams = sample_adamw(search_space["adamw"], rng)
+            hparams = dict(hparam_trials[trial_idx])
             trial_seed = cfg["seed"]
 
             result = _run_trial(
@@ -479,3 +473,42 @@ def run_transfer(cfg: Dict, arch_cfg: Dict, device: torch.device) -> None:
         )
 
     save_dicts_csv(os.path.join(output_dir, "regret_matrix.csv"), regret_matrix)
+
+    if cfg["artifacts"]["save_plots"]:
+        try:
+            import matplotlib.pyplot as plt
+
+            arch_names = [arch["name"] for arch in architectures]
+            index = {name: idx for idx, name in enumerate(arch_names)}
+            size = len(arch_names)
+            matrix = [[float("nan") for _ in range(size)] for _ in range(size)]
+            for row in regret_matrix:
+                i = index[row["target_arch"]]
+                j = index[row["source_arch"]]
+                matrix[i][j] = row["mean_regret"]
+
+            vals = [v for row in matrix for v in row if v == v]
+            vmin = vmax = None
+            if vals:
+                max_abs = max(abs(min(vals)), abs(max(vals)))
+                vmin, vmax = -max_abs, max_abs
+
+            fig_w = max(6.0, size * 0.7)
+            fig_h = max(5.0, size * 0.6)
+            plt.figure(figsize=(fig_w, fig_h))
+            plt.imshow(matrix, cmap="coolwarm", vmin=vmin, vmax=vmax)
+            plt.colorbar(label="Mean Regret (Test Loss)")
+            plt.xticks(range(size), arch_names, rotation=45, ha="right")
+            plt.yticks(range(size), arch_names)
+            plt.xlabel("Source Architecture (Hyperparameters)")
+            plt.ylabel("Target Architecture")
+            for i in range(size):
+                for j in range(size):
+                    val = matrix[i][j]
+                    if val == val:
+                        plt.text(j, i, f"{val:.4f}", ha="center", va="center", fontsize=8)
+            plt.tight_layout()
+            plt.savefig(os.path.join(output_dir, "regret_matrix_mean.png"))
+            plt.close()
+        except Exception:
+            pass
