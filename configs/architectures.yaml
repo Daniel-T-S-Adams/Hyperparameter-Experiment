@@ -3,7 +3,6 @@ two_layer_widths:
   - [192, 192]
 
 three_layer_widths:
-  - [256, 128, 64]
   - [192, 192, 128]
 
 four_layer_widths:
@@ -16,3 +15,14 @@ dropouts:
 leaky_relu_alphas:
   - 0.015
   - 0.045
+
+
+# two_layer_widths:
+#   - [256, 128]
+
+# dropouts:
+#   - 0.3
+
+# leaky_relu_alphas:
+#   - 0.015
+#   - 0.045

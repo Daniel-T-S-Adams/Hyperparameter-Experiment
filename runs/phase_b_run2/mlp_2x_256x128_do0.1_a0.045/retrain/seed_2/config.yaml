@@ -12,7 +12,7 @@ hyperparameters:
   eps: 1.7770613175693132e-09
   weight_decay: 1.1661717603204465e-06
 seed: 2
-best_validation_loss: 0.0736479467868805
-best_epoch: 408
-terminating_epoch: 436
-test_loss: 0.07031943800449371
+best_validation_loss: 0.07360793941020966
+best_epoch: 412
+terminating_epoch: 440
+test_loss: 0.07010143270492554

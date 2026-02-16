@@ -6,11 +6,12 @@ architecture:
   dropout: 0.3
   leaky_relu_alpha: 0.045
 hyperparameters:
-  lr: 0.00011346165063662855
-  beta1: 0.9322612848600983
-  beta2: 0.9881596521831026
-  eps: 3.4561473921402963e-07
-  weight_decay: 0.00010498694110461728
-best_validation_loss: 0.07026065726280212
-best_epoch: 348
-terminating_epoch: 376
+  lr: 3.995468520113214e-05
+  beta1: 0.9268318265943414
+  beta2: 0.9702337721303566
+  eps: 1.0554981866069318e-07
+  weight_decay: 3.153639757109685e-05
+best_trial_idx: 12
+best_validation_loss: 0.07023532928228378
+best_epoch: 924
+terminating_epoch: 952

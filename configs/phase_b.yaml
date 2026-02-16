@@ -1,9 +1,0 @@
-phase: phase_b
-output_dir: runs/phase_b_run2
-
-search:
-  num_trials: 30
-  seed: 1
-
-retrain:
-  seeds: [1, 2, 3, 4, 5]

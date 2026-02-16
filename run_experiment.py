@@ -1,6 +1,6 @@
 import argparse
 
-from src.experiments import run_phase_a, run_phase_b, run_transfer
+from src.experiments import run_search, run_transfer
 from src.utils import deep_update, load_yaml, resolve_device
 
 
@@ -12,7 +12,7 @@ def load_config(defaults_path: str, phase_path: str):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="MNIST MLP Hyperparameter Experiment")
-    parser.add_argument("--phase", choices=["phase_a", "phase_b", "transfer"], required=True)
+    parser.add_argument("--phase", choices=["search", "transfer"], required=True)
     parser.add_argument("--defaults", default="configs/defaults.yaml")
     parser.add_argument("--search-space", default="configs/search_space.yaml")
     parser.add_argument("--architectures", default="configs/architectures.yaml")
@@ -26,10 +26,8 @@ def main() -> None:
 
     device = resolve_device(cfg.get("device", "auto"))
 
-    if args.phase == "phase_a":
-        run_phase_a(cfg, search_space, device)
-    elif args.phase == "phase_b":
-        run_phase_b(cfg, arch_cfg, search_space, device)
+    if args.phase == "search":
+        run_search(cfg, arch_cfg, search_space, device)
     else:
         run_transfer(cfg, arch_cfg, device)
 

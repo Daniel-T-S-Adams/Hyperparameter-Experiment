@@ -2,5 +2,5 @@ phase: transfer
 output_dir: runs/transfer/run2
 
 transfer:
-  seeds: [1, 2, 3, 4, 5]
-  phase_b_dir: runs/phase_b/run2
+  seeds: [1,2,3,4,5]
+  search_dir: runs/search

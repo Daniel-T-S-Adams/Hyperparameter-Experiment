@@ -12,6 +12,12 @@ def save_history_csv(path: str, history: List[Dict[str, float]]) -> None:
         writer.writerows(history)
 
 
+def load_dicts_csv(path: str) -> List[Dict[str, str]]:
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        return list(reader)
+
+
 def save_dicts_csv(path: str, rows: List[Dict[str, float]]) -> None:
     if not rows:
         return

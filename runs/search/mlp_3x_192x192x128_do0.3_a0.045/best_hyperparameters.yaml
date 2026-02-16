@@ -1,0 +1,18 @@
+architecture:
+  name: mlp_3x_192x192x128_do0.3_a0.045
+  layers:
+  - 192
+  - 192
+  - 128
+  dropout: 0.3
+  leaky_relu_alpha: 0.045
+hyperparameters:
+  lr: 0.0011549728007757766
+  beta1: 0.905103956092908
+  beta2: 0.9170178847658825
+  eps: 3.211557302077356e-08
+  weight_decay: 0.008478256473410474
+best_trial_idx: 15
+best_validation_loss: 0.07605777772665023
+best_epoch: 45
+terminating_epoch: 65

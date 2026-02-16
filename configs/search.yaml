@@ -1,0 +1,9 @@
+phase: search
+output_dir: runs/search
+
+search:
+  num_trials: 30
+  seed: 1
+
+retrain:
+  seeds: [1,2,3,4,5]

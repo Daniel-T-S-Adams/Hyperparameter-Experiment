@@ -11,6 +11,7 @@ hyperparameters:
   beta2: 0.9454246928415618
   eps: 9.247094569627689e-09
   weight_decay: 7.853876298390942e-05
-best_validation_loss: 0.07271561036109925
+best_trial_idx: 27
+best_validation_loss: 0.07269885051250458
 best_epoch: 332
 terminating_epoch: 360

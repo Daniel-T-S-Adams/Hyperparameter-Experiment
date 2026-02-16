@@ -9,6 +9,7 @@ from .data import create_dataloaders, get_datasets
 from .model import MLP
 from .reporting import (
     compute_stats,
+    load_dicts_csv,
     running_best,
     save_dicts_csv,
     save_history_csv,
@@ -164,95 +165,7 @@ def _run_trial(
     }
 
 
-def run_phase_a(cfg: Dict, search_space: Dict, device: torch.device) -> None:
-    output_dir = cfg["output_dir"]
-    ensure_dir(output_dir)
-
-    datasets = get_datasets(cfg["data"], cfg["seed"], device)
-    log_interval = cfg["training"].get("log_interval", 0)
-
-    arch = cfg["architecture"]
-    if "name" not in arch:
-        arch = {
-            **arch,
-            "name": _architecture_name(
-                arch["layers"], arch["dropout"], arch["leaky_relu_alpha"]
-            ),
-        }
-
-    rng = random.Random(cfg["search"]["seed"])
-
-    best_val_loss = float("inf")
-    best_hparams = None
-    trial_summaries = []
-    val_losses = []
-
-    for trial_idx in range(cfg["search"]["num_trials"]):
-        trial_label = f"phase_a trial {trial_idx + 1}/{cfg['search']['num_trials']}"
-        hparams = sample_adamw(search_space["adamw"], rng)
-        trial_seed = cfg["seed"]
-        trial_dir = os.path.join(output_dir, f"trial_{trial_idx:03d}")
-
-        result = _run_trial(
-            arch=arch,
-            hparams=hparams,
-            datasets=datasets,
-            cfg=cfg,
-            device=device,
-            seed=trial_seed,
-            output_dir=trial_dir,
-            compute_test=False,
-            log_interval=log_interval,
-            log_prefix=trial_label,
-        )
-
-        val_losses.append(result["best_val_loss"])
-        trial_summaries.append(
-            {
-                "trial": trial_idx,
-                "best_val_loss": result["best_val_loss"],
-                "best_epoch": result["best_epoch"],
-                "terminating_epoch": result["terminating_epoch"],
-                **hparams,
-            }
-        )
-
-        if result["best_val_loss"] < best_val_loss:
-            best_val_loss = result["best_val_loss"]
-            best_hparams = hparams
-
-    save_dicts_csv(os.path.join(output_dir, "trial_summaries.csv"), trial_summaries)
-
-    running_best_vals = running_best(val_losses)
-    budget_curve = [
-        {"trial": i, "best_val_loss": running_best_vals[i]} for i in range(len(val_losses))
-    ]
-    save_dicts_csv(os.path.join(output_dir, "budget_curve.csv"), budget_curve)
-
-    if cfg["artifacts"]["save_plots"]:
-        try:
-            import matplotlib.pyplot as plt
-
-            plt.figure(figsize=(8, 5))
-            plt.plot([b["trial"] + 1 for b in budget_curve], [b["best_val_loss"] for b in budget_curve])
-            plt.xlabel("Trial")
-            plt.ylabel("Running Best Validation Loss")
-            plt.tight_layout()
-            plt.savefig(os.path.join(output_dir, "budget_curve.png"))
-            plt.close()
-        except Exception:
-            pass
-
-    summary = {
-        "architecture": arch,
-        "best_hyperparameters": best_hparams,
-        "best_validation_loss": best_val_loss,
-        "num_trials": cfg["search"]["num_trials"],
-    }
-    save_yaml(os.path.join(output_dir, "summary.yaml"), summary)
-
-
-def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.device) -> None:
+def run_search(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.device) -> None:
     output_dir = cfg["output_dir"]
     ensure_dir(output_dir)
 
@@ -276,12 +189,13 @@ def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.dev
         best_history = None
         best_epoch = None
         best_terminating_epoch = None
+        best_trial_idx = 0
 
         search_results = []
 
         for trial_idx in range(cfg["search"]["num_trials"]):
             trial_label = (
-                f"phase_b {arch['name']} trial {trial_idx + 1}/{cfg['search']['num_trials']}"
+                f"search {arch['name']} trial {trial_idx + 1}/{cfg['search']['num_trials']}"
             )
             hparams = dict(hparam_trials[trial_idx])
             trial_seed = cfg["seed"]
@@ -294,7 +208,7 @@ def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.dev
                 device=device,
                 seed=trial_seed,
                 output_dir=None,
-                compute_test=False,
+                compute_test=True,
                 log_interval=log_interval,
                 log_prefix=trial_label,
                 save_history=False,
@@ -306,6 +220,7 @@ def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.dev
                 {
                     "trial": trial_idx,
                     "best_val_loss": result["best_val_loss"],
+                    "test_loss": result["test_loss"],
                     "best_epoch": result["best_epoch"],
                     "terminating_epoch": result["terminating_epoch"],
                     **hparams,
@@ -315,6 +230,7 @@ def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.dev
             if result["best_val_loss"] < best_val_loss:
                 best_val_loss = result["best_val_loss"]
                 best_hparams = hparams
+                best_trial_idx = trial_idx
                 best_history = result["history"]
                 best_epoch = result["best_epoch"]
                 best_terminating_epoch = result["terminating_epoch"]
@@ -332,6 +248,7 @@ def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.dev
             {
                 "architecture": arch,
                 "hyperparameters": best_hparams,
+                "best_trial_idx": best_trial_idx,
                 "best_validation_loss": best_val_loss,
                 "best_epoch": best_epoch,
                 "terminating_epoch": best_terminating_epoch,
@@ -354,7 +271,7 @@ def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.dev
                 output_dir=seed_dir,
                 compute_test=True,
                 log_interval=log_interval,
-                log_prefix=f"phase_b {arch['name']} retrain seed {seed}",
+                log_prefix=f"search {arch['name']} retrain seed {seed}",
                 save_history=False,
                 save_plot_flag=False,
                 save_config=True,
@@ -374,6 +291,10 @@ def run_phase_b(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.dev
         overall_summary.append(summary)
 
     save_yaml(os.path.join(output_dir, "summary.yaml"), {"architectures": overall_summary})
+    save_yaml(
+        os.path.join(output_dir, "search_meta.yaml"),
+        {"search_training_seed": cfg["seed"]},
+    )
 
 
 def run_transfer(cfg: Dict, arch_cfg: Dict, device: torch.device) -> None:
@@ -384,18 +305,24 @@ def run_transfer(cfg: Dict, arch_cfg: Dict, device: torch.device) -> None:
     architectures = generate_architectures(arch_cfg)
     log_interval = cfg["training"].get("log_interval", 0)
 
-    # Load best hyperparameters from phase B
-    phase_b_dir = cfg["transfer"]["phase_b_dir"]
+    # Load best hyperparameters from search phase
+    search_dir = cfg["transfer"]["search_dir"]
     best_hparams = {}
-    phase_b_test_means = {}
+    search_test_means = {}
+    best_trial_indices = {}
+
+    # Retrain results: {arch_name: {seed: test_loss}}
+    retrain_test_losses = {}
+    # Search results: {arch_name: {trial_idx: test_loss}}
+    search_test_losses = {}
 
     for arch in architectures:
-        arch_dir = os.path.join(phase_b_dir, arch["name"])
+        arch_dir = os.path.join(search_dir, arch["name"])
         hparams_path = os.path.join(arch_dir, "best_hyperparameters.yaml")
         summary_path = os.path.join(arch_dir, "summary.yaml")
         if not os.path.exists(hparams_path) or not os.path.exists(summary_path):
             raise FileNotFoundError(
-                f"Missing phase B artifacts for {arch['name']} in {arch_dir}"
+                f"Missing search phase artifacts for {arch['name']} in {arch_dir}"
             )
         with open(hparams_path, "r", encoding="utf-8") as f:
             hparams_data = yaml.safe_load(f)
@@ -403,43 +330,162 @@ def run_transfer(cfg: Dict, arch_cfg: Dict, device: torch.device) -> None:
             summary_data = yaml.safe_load(f)
 
         best_hparams[arch["name"]] = hparams_data["hyperparameters"]
-        phase_b_test_means[arch["name"]] = summary_data["test_loss_stats"]["mean"]
+        search_test_means[arch["name"]] = summary_data["test_loss_stats"]["mean"]
+
+        # Load best trial index (may be absent in older search outputs)
+        if "best_trial_idx" in hparams_data:
+            best_trial_indices[arch["name"]] = hparams_data["best_trial_idx"]
+
+        # Load retrain seed losses
+        retrain_csv_path = os.path.join(arch_dir, "retrain", "seed_losses.csv")
+        if os.path.exists(retrain_csv_path):
+            rows = load_dicts_csv(retrain_csv_path)
+            retrain_test_losses[arch["name"]] = {
+                int(row["seed"]): float(row["test_loss"]) for row in rows
+            }
+
+        # Load search results with test losses
+        search_csv_path = os.path.join(arch_dir, "search_results.csv")
+        if os.path.exists(search_csv_path):
+            rows = load_dicts_csv(search_csv_path)
+            if rows and "test_loss" in rows[0]:
+                search_test_losses[arch["name"]] = {
+                    int(row["trial"]): float(row["test_loss"]) for row in rows
+                }
+
+    # Load search training seed (may be absent in older search outputs)
+    search_training_seed = None
+    search_meta_path = os.path.join(search_dir, "search_meta.yaml")
+    if os.path.exists(search_meta_path):
+        with open(search_meta_path, "r", encoding="utf-8") as f:
+            search_meta = yaml.safe_load(f)
+        search_training_seed = search_meta["search_training_seed"]
+
+    has_search_cache = bool(search_test_losses and best_trial_indices and search_training_seed is not None)
+    has_retrain_cache = bool(retrain_test_losses)
+    if has_retrain_cache or has_search_cache:
+        cache_parts = []
+        if has_retrain_cache:
+            cache_parts.append("retrain results (diagonal)")
+        if has_search_cache:
+            cache_parts.append(f"search results (seed={search_training_seed})")
+        print(f"[transfer] reusing search phase {', '.join(cache_parts)}", flush=True)
+    else:
+        print("[transfer] no search phase cache available, training all combinations", flush=True)
+
+    def _hparam_signature(hparams: Dict[str, float]) -> tuple:
+        return tuple(sorted((name, float(value)) for name, value in hparams.items()))
+
+    source_signature = {
+        arch["name"]: _hparam_signature(best_hparams[arch["name"]]) for arch in architectures
+    }
+    sources_by_signature = {}
+    for source_name, signature in source_signature.items():
+        sources_by_signature.setdefault(signature, []).append(source_name)
+
+    unique_hparam_sets = len(sources_by_signature)
+    total_sources = len(architectures)
+    if unique_hparam_sets < total_sources:
+        print(
+            f"[transfer] found {unique_hparam_sets} unique hyperparameter sets "
+            f"across {total_sources} source architectures; reusing equivalent columns",
+            flush=True,
+        )
 
     transfer_results = []
     transfer_seed_rows = []
+    reused_count = 0
+    trained_count = 0
+    eval_cache = {}
 
     for target_arch in architectures:
         for source_arch in architectures:
             source_name = source_arch["name"]
+            target_name = target_arch["name"]
             hparams = best_hparams[source_name]
+            signature = source_signature[source_name]
 
             test_losses = []
             for seed in cfg["transfer"]["seeds"]:
-                result = _run_trial(
-                    arch=target_arch,
-                    hparams=hparams,
-                    datasets=datasets,
-                    cfg=cfg,
-                    device=device,
-                    seed=seed,
-                    output_dir=None,
-                    compute_test=True,
-                    log_interval=log_interval,
-                    log_prefix=(
-                        f"transfer target {target_arch['name']} "
-                        f"source {source_name} seed {seed}"
-                    ),
-                    save_history=False,
-                    save_plot_flag=False,
-                    save_config=False,
+                log_prefix = (
+                    f"transfer target {target_name} "
+                    f"source {source_name} seed {seed}"
                 )
-                test_losses.append(result["test_loss"])
+                test_loss = None
+                cache_key = (target_name, seed, signature)
+
+                if cache_key in eval_cache:
+                    test_loss = eval_cache[cache_key]
+                    reused_count += 1
+                    print(
+                        f"[{log_prefix}] reusing equivalent hyperparameters: "
+                        f"test_loss={test_loss:.4f}",
+                        flush=True,
+                    )
+
+                # Check if we can reuse a search phase result.
+                # If the target's own optimum is equivalent to this source optimum,
+                # prefer the target retrain cache and share it across equivalent sources.
+                if (
+                    test_loss is None
+                    and has_retrain_cache
+                    and target_name in sources_by_signature.get(signature, [])
+                ):
+                    cached = retrain_test_losses.get(target_name, {}).get(seed)
+                    if cached is not None:
+                        test_loss = cached
+                        reused_count += 1
+                        print(
+                            f"[{log_prefix}] reusing retrain result "
+                            f"(target-equivalent): test_loss={test_loss:.4f}",
+                            flush=True,
+                        )
+
+                if test_loss is None and has_search_cache and seed == search_training_seed:
+                    for equivalent_source in sources_by_signature.get(signature, []):
+                        trial_idx = best_trial_indices.get(equivalent_source)
+                        if trial_idx is None:
+                            continue
+                        cached = search_test_losses.get(target_name, {}).get(trial_idx)
+                        if cached is None:
+                            continue
+                        test_loss = cached
+                        reused_count += 1
+                        print(
+                            f"[{log_prefix}] reusing search result "
+                            f"(source {equivalent_source}, trial {trial_idx}): "
+                            f"test_loss={test_loss:.4f}",
+                            flush=True,
+                        )
+                        break
+
+                if test_loss is None:
+                    result = _run_trial(
+                        arch=target_arch,
+                        hparams=hparams,
+                        datasets=datasets,
+                        cfg=cfg,
+                        device=device,
+                        seed=seed,
+                        output_dir=None,
+                        compute_test=True,
+                        log_interval=log_interval,
+                        log_prefix=log_prefix,
+                        save_history=False,
+                        save_plot_flag=False,
+                        save_config=False,
+                    )
+                    test_loss = result["test_loss"]
+                    trained_count += 1
+                eval_cache[cache_key] = test_loss
+
+                test_losses.append(test_loss)
                 transfer_seed_rows.append(
                     {
-                        "target_arch": target_arch["name"],
+                        "target_arch": target_name,
                         "source_arch": source_name,
                         "seed": seed,
-                        "test_loss": result["test_loss"],
+                        "test_loss": test_loss,
                     }
                 )
 
@@ -452,15 +498,23 @@ def run_transfer(cfg: Dict, arch_cfg: Dict, device: torch.device) -> None:
                 }
             )
 
+    total = reused_count + trained_count
+    print(
+        f"[transfer] done: {trained_count} trained, {reused_count} reused, "
+        f"{total} total",
+        flush=True,
+    )
+
     save_dicts_csv(os.path.join(output_dir, "transfer_results.csv"), transfer_results)
     save_dicts_csv(os.path.join(output_dir, "transfer_seed_losses.csv"), transfer_seed_rows)
 
     # Compute regret matrix
     regret_matrix = []
+    relative_regret_matrix = []
     for result in transfer_results:
         target = result["target_arch"]
         source = result["source_arch"]
-        baseline = phase_b_test_means[target]
+        baseline = search_test_means[target]
         regret_matrix.append(
             {
                 "target_arch": target,
@@ -471,8 +525,16 @@ def run_transfer(cfg: Dict, arch_cfg: Dict, device: torch.device) -> None:
                 "max_regret": result["max"] - baseline,
             }
         )
+        relative_regret_matrix.append(
+            {
+                "target_arch": target,
+                "source_arch": source,
+                "mean_relative_regret": result["mean"] / baseline if baseline else float("nan"),
+            }
+        )
 
     save_dicts_csv(os.path.join(output_dir, "regret_matrix.csv"), regret_matrix)
+    save_dicts_csv(os.path.join(output_dir, "relative_regret_matrix.csv"), relative_regret_matrix)
 
     if cfg["artifacts"]["save_plots"]:
         try:
@@ -481,22 +543,47 @@ def run_transfer(cfg: Dict, arch_cfg: Dict, device: torch.device) -> None:
             arch_names = [arch["name"] for arch in architectures]
             index = {name: idx for idx, name in enumerate(arch_names)}
             size = len(arch_names)
-            matrix = [[float("nan") for _ in range(size)] for _ in range(size)]
+
+            # --- Transfer test loss heatmap ---
+            loss_matrix = [[float("nan") for _ in range(size)] for _ in range(size)]
+            for result in transfer_results:
+                i = index[result["target_arch"]]
+                j = index[result["source_arch"]]
+                loss_matrix[i][j] = result["mean"]
+
+            fig_w = max(6.0, size * 0.7)
+            fig_h = max(5.0, size * 0.6)
+            plt.figure(figsize=(fig_w, fig_h))
+            plt.imshow(loss_matrix, cmap="viridis")
+            plt.colorbar(label="Mean Test Loss")
+            plt.xticks(range(size), arch_names, rotation=45, ha="right")
+            plt.yticks(range(size), arch_names)
+            plt.xlabel("Source Architecture (Hyperparameters)")
+            plt.ylabel("Target Architecture")
+            for i in range(size):
+                for j in range(size):
+                    val = loss_matrix[i][j]
+                    if val == val:
+                        plt.text(j, i, f"{val:.4f}", ha="center", va="center", fontsize=8)
+            plt.tight_layout()
+            plt.savefig(os.path.join(output_dir, "transfer_test_loss.png"))
+            plt.close()
+
+            # --- Regret heatmap ---
+            regret_vals = [[float("nan") for _ in range(size)] for _ in range(size)]
             for row in regret_matrix:
                 i = index[row["target_arch"]]
                 j = index[row["source_arch"]]
-                matrix[i][j] = row["mean_regret"]
+                regret_vals[i][j] = row["mean_regret"]
 
-            vals = [v for row in matrix for v in row if v == v]
+            vals = [v for row in regret_vals for v in row if v == v]
             vmin = vmax = None
             if vals:
                 max_abs = max(abs(min(vals)), abs(max(vals)))
                 vmin, vmax = -max_abs, max_abs
 
-            fig_w = max(6.0, size * 0.7)
-            fig_h = max(5.0, size * 0.6)
             plt.figure(figsize=(fig_w, fig_h))
-            plt.imshow(matrix, cmap="coolwarm", vmin=vmin, vmax=vmax)
+            plt.imshow(regret_vals, cmap="coolwarm", vmin=vmin, vmax=vmax)
             plt.colorbar(label="Mean Regret (Test Loss)")
             plt.xticks(range(size), arch_names, rotation=45, ha="right")
             plt.yticks(range(size), arch_names)
@@ -504,11 +591,40 @@ def run_transfer(cfg: Dict, arch_cfg: Dict, device: torch.device) -> None:
             plt.ylabel("Target Architecture")
             for i in range(size):
                 for j in range(size):
-                    val = matrix[i][j]
+                    val = regret_vals[i][j]
                     if val == val:
                         plt.text(j, i, f"{val:.4f}", ha="center", va="center", fontsize=8)
             plt.tight_layout()
             plt.savefig(os.path.join(output_dir, "regret_matrix_mean.png"))
+            plt.close()
+
+            # --- Relative regret heatmap ---
+            rel_matrix = [[float("nan") for _ in range(size)] for _ in range(size)]
+            for row in relative_regret_matrix:
+                i = index[row["target_arch"]]
+                j = index[row["source_arch"]]
+                rel_matrix[i][j] = row["mean_relative_regret"]
+
+            rel_vals = [v for row in rel_matrix for v in row if v == v]
+            rel_vmin = rel_vmax = None
+            if rel_vals:
+                max_dev = max(abs(v - 1.0) for v in rel_vals)
+                rel_vmin, rel_vmax = 1.0 - max_dev, 1.0 + max_dev
+
+            plt.figure(figsize=(fig_w, fig_h))
+            plt.imshow(rel_matrix, cmap="coolwarm", vmin=rel_vmin, vmax=rel_vmax)
+            plt.colorbar(label="Relative Test Loss (transferred / own)")
+            plt.xticks(range(size), arch_names, rotation=45, ha="right")
+            plt.yticks(range(size), arch_names)
+            plt.xlabel("Source Architecture (Hyperparameters)")
+            plt.ylabel("Target Architecture")
+            for i in range(size):
+                for j in range(size):
+                    val = rel_matrix[i][j]
+                    if val == val:
+                        plt.text(j, i, f"{val:.4f}", ha="center", va="center", fontsize=8)
+            plt.tight_layout()
+            plt.savefig(os.path.join(output_dir, "relative_regret_matrix.png"))
             plt.close()
         except Exception:
             pass
