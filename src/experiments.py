@@ -15,14 +15,14 @@ from .reporting import (
     save_history_csv,
     save_plot,
 )
-from .search import sample_adamw
+from .search import sample_hyperparameters
 from .train import evaluate, train_with_early_stopping
 from .utils import ensure_dir, save_yaml, set_seed
 
 
-def _architecture_name(layers: List[int], dropout: float, alpha: float) -> str:
+def _architecture_name(layers: List[int]) -> str:
     layer_str = "x".join(str(l) for l in layers)
-    return f"mlp_{len(layers)}x_{layer_str}_do{dropout}_a{alpha}"
+    return f"mlp_{len(layers)}x_{layer_str}"
 
 
 def generate_architectures(arch_cfg: Dict) -> List[Dict]:
@@ -31,25 +31,21 @@ def generate_architectures(arch_cfg: Dict) -> List[Dict]:
     layer_keys = [key for key in arch_cfg.keys() if key.endswith("_layer_widths")]
     for key in layer_keys:
         for layers in arch_cfg[key]:
-            for dropout in arch_cfg["dropouts"]:
-                for alpha in arch_cfg["leaky_relu_alphas"]:
-                    architectures.append(
-                        {
-                            "name": _architecture_name(layers, dropout, alpha),
-                            "layers": layers,
-                            "dropout": dropout,
-                            "leaky_relu_alpha": alpha,
-                        }
-                    )
+            architectures.append(
+                {
+                    "name": _architecture_name(layers),
+                    "layers": layers,
+                }
+            )
 
     return architectures
 
 
-def _build_model(arch: Dict, device: torch.device) -> torch.nn.Module:
+def _build_model(arch: Dict, hparams: Dict, device: torch.device) -> torch.nn.Module:
     model = MLP(
         layers=arch["layers"],
-        dropout=arch["dropout"],
-        leaky_relu_alpha=arch["leaky_relu_alpha"],
+        dropout=hparams["dropout"],
+        leaky_relu_alpha=hparams["leaky_relu_alpha"],
     )
     return model.to(device)
 
@@ -92,7 +88,7 @@ def _run_trial(
         seed,
     )
 
-    model = _build_model(arch, device)
+    model = _build_model(arch, hparams, device)
     optimizer = _create_optimizer(model, hparams)
 
     if log_prefix:
@@ -177,7 +173,7 @@ def run_search(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.devi
 
     rng = random.Random(cfg["search"]["seed"])
     hparam_trials = [
-        sample_adamw(search_space["adamw"], rng) for _ in range(cfg["search"]["num_trials"])
+        sample_hyperparameters(search_space, rng) for _ in range(cfg["search"]["num_trials"])
     ]
 
     for arch in architectures:

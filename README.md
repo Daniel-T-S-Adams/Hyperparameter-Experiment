@@ -2,7 +2,7 @@
 
 This project investigates two questions using MLP networks trained on MNIST:
 
-1. **Hyperparameter Transfer** — Do AdamW hyperparameters tuned on one MLP architecture transfer well to others?
+1. **Hyperparameter Transfer** — Do tuned hyperparameters (AdamW + model regularization) on one MLP architecture transfer well to others?
 2. **Architecture Sensitivity** — After proper tuning, do different MLP architectures achieve essentially the same final test loss?
 
 The experiment runs in two phases:
@@ -15,8 +15,8 @@ The experiment runs in two phases:
 ```
 ├── configs/
 │   ├── defaults.yaml          # Global training defaults (batch size, patience, device, etc.)
-│   ├── search_space.yaml      # AdamW hyperparameter ranges (lr, betas, eps, weight decay)
-│   ├── architectures.yaml     # Architecture grid (layer widths, dropouts, leaky ReLU alphas)
+│   ├── search_space.yaml      # Hyperparameter ranges (AdamW + dropout + leaky ReLU alpha)
+│   ├── architectures.yaml     # Architecture grid (layer widths)
 │   ├── search.yaml            # Search phase config (num_trials, retrain seeds)
 │   └── transfer.yaml          # Transfer config (seeds, path to search results)
 ├── src/
@@ -59,9 +59,9 @@ Key settings in `configs/defaults.yaml`:
 | `training.val_interval` | `4` | Epochs between validation evaluations |
 | `data.preload` | `cuda` | Preload dataset to GPU (`cuda`, `cpu`, or `false`) |
 
-The hyperparameter search space is defined in `configs/search_space.yaml` (log-uniform sampling for lr/eps/weight_decay, uniform for betas).
+The hyperparameter search space is defined in `configs/search_space.yaml` (log-uniform sampling for lr/eps/weight_decay, uniform for betas/dropout/leaky_relu_alpha).
 
-Architecture combinations are defined in `configs/architectures.yaml` as a grid of layer widths, dropout rates, and leaky ReLU slopes.
+Architecture combinations are defined in `configs/architectures.yaml` as a grid of layer widths.
 
 ## Running Experiments
 

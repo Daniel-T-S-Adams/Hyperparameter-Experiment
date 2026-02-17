@@ -13,23 +13,38 @@ def _sample_uniform(rng: random.Random, min_val: float, max_val: float) -> float
     return rng.uniform(min_val, max_val)
 
 
+def _sample_parameter(rng: random.Random, cfg: Dict) -> float:
+    if "choices" in cfg:
+        return float(rng.choice(cfg["choices"]))
+
+    scale = cfg.get("scale", "uniform")
+    if scale == "log":
+        return _sample_log_uniform(rng, cfg["min"], cfg["max"])
+    if scale == "uniform":
+        return _sample_uniform(rng, cfg["min"], cfg["max"])
+
+    raise ValueError(f"Unsupported scale '{scale}' in search space config")
+
+
 def sample_adamw(search_space: Dict, rng: random.Random) -> Dict[str, float]:
-    lr_cfg = search_space["lr"]
-    beta1_cfg = search_space["beta1"]
-    beta2_cfg = search_space["beta2"]
-    eps_cfg = search_space["eps"]
-    wd_cfg = search_space["weight_decay"]
-
-    lr = _sample_log_uniform(rng, lr_cfg["min"], lr_cfg["max"])
-    beta1 = _sample_uniform(rng, beta1_cfg["min"], beta1_cfg["max"])
-    beta2 = _sample_uniform(rng, beta2_cfg["min"], beta2_cfg["max"])
-    eps = _sample_log_uniform(rng, eps_cfg["min"], eps_cfg["max"])
-    weight_decay = _sample_log_uniform(rng, wd_cfg["min"], wd_cfg["max"])
-
     return {
-        "lr": lr,
-        "beta1": beta1,
-        "beta2": beta2,
-        "eps": eps,
-        "weight_decay": weight_decay,
+        "lr": _sample_parameter(rng, search_space["lr"]),
+        "beta1": _sample_parameter(rng, search_space["beta1"]),
+        "beta2": _sample_parameter(rng, search_space["beta2"]),
+        "eps": _sample_parameter(rng, search_space["eps"]),
+        "weight_decay": _sample_parameter(rng, search_space["weight_decay"]),
+    }
+
+
+def sample_model_hyperparameters(search_space: Dict, rng: random.Random) -> Dict[str, float]:
+    return {
+        "dropout": _sample_parameter(rng, search_space["dropout"]),
+        "leaky_relu_alpha": _sample_parameter(rng, search_space["leaky_relu_alpha"]),
+    }
+
+
+def sample_hyperparameters(search_space: Dict, rng: random.Random) -> Dict[str, float]:
+    return {
+        **sample_adamw(search_space["adamw"], rng),
+        **sample_model_hyperparameters(search_space["model"], rng),
     }

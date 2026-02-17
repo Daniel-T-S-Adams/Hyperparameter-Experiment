@@ -19,3 +19,13 @@ adamw:
     min: 1.0e-06
     max: 1.0e-02
     scale: log
+
+model:
+  dropout:
+    min: 0.01
+    max: 0.5
+    scale: uniform
+  leaky_relu_alpha:
+    min: 0.01
+    max: 0.1
+    scale: uniform
