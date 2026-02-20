@@ -1,0 +1,19 @@
+architecture:
+  name: mlp_3x_252x32x16
+  layers:
+  - 252
+  - 32
+  - 16
+hyperparameters:
+  lr: 0.0003537246121192219
+  beta1: 0.9510156045277095
+  beta2: 0.9228533459049182
+  eps: 6.851916891429522e-07
+  weight_decay: 0.004033757913744142
+  dropout: 0.024989091686441235
+  leaky_relu_alpha: 0.012290127489411473
+seed: 2
+best_validation_loss: 0.08941210205554963
+best_epoch: 140
+terminating_epoch: 156
+test_loss: 0.08259925018548965

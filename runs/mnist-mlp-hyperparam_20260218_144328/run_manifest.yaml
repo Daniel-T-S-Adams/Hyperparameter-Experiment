@@ -1,0 +1,5 @@
+run_dir: runs/mnist-mlp-hyperparam_20260218_144328
+search_output_dir: runs/mnist-mlp-hyperparam_20260218_144328/search
+transfer_output_dir: runs/mnist-mlp-hyperparam_20260218_144328/transfer
+search_config_path: configs/search.yaml
+transfer_config_path: configs/transfer.yaml

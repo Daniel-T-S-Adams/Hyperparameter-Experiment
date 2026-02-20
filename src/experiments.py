@@ -11,6 +11,7 @@ from .reporting import (
     compute_stats,
     load_dicts_csv,
     running_best,
+    save_search_seed_loss_plot,
     save_dicts_csv,
     save_history_csv,
     save_plot,
@@ -161,6 +162,91 @@ def _run_trial(
     }
 
 
+def _write_search_summary_artifacts(
+    output_dir: str,
+    arch_names: List[str],
+    save_plots: bool,
+) -> None:
+    stats_rows = []
+    seed_rows = []
+    losses_by_arch = {}
+    found_summaries = 0
+
+    for arch_name in arch_names:
+        arch_dir = os.path.join(output_dir, arch_name)
+        summary_path = os.path.join(arch_dir, "summary.yaml")
+        if not os.path.exists(summary_path):
+            continue
+
+        found_summaries += 1
+        with open(summary_path, "r", encoding="utf-8") as f:
+            summary_data = yaml.safe_load(f) or {}
+
+        test_stats = summary_data.get("test_loss_stats", {})
+        stats_rows.append(
+            {
+                "architecture": arch_name,
+                "mean": test_stats.get("mean"),
+                "var": test_stats.get("var"),
+                "min": test_stats.get("min"),
+                "max": test_stats.get("max"),
+            }
+        )
+
+        retrain_csv_path = os.path.join(arch_dir, "retrain", "seed_losses.csv")
+        losses = []
+        if os.path.exists(retrain_csv_path):
+            rows = load_dicts_csv(retrain_csv_path)
+            for row in rows:
+                seed = int(row["seed"])
+                test_loss = float(row["test_loss"])
+                losses.append(test_loss)
+                seed_rows.append(
+                    {
+                        "architecture": arch_name,
+                        "seed": seed,
+                        "test_loss": test_loss,
+                    }
+                )
+        losses_by_arch[arch_name] = losses
+
+    if found_summaries == 0:
+        raise FileNotFoundError(f"No architecture summary files found in {output_dir}")
+
+    save_dicts_csv(os.path.join(output_dir, "search_test_loss_stats.csv"), stats_rows)
+    save_dicts_csv(os.path.join(output_dir, "search_seed_losses.csv"), seed_rows)
+
+    if save_plots:
+        save_search_seed_loss_plot(
+            os.path.join(output_dir, "search_test_loss_over_seeds.png"),
+            losses_by_arch,
+        )
+
+
+def run_search_report(cfg: Dict, arch_cfg: Dict) -> None:
+    output_dir = cfg["output_dir"]
+    if not os.path.isdir(output_dir):
+        raise FileNotFoundError(f"Search output directory not found: {output_dir}")
+
+    configured_arch_names = [arch["name"] for arch in generate_architectures(arch_cfg)]
+    discovered_arch_names = [
+        name
+        for name in sorted(os.listdir(output_dir))
+        if os.path.exists(os.path.join(output_dir, name, "summary.yaml"))
+    ]
+
+    arch_names = [name for name in configured_arch_names if name in discovered_arch_names]
+    for name in discovered_arch_names:
+        if name not in arch_names:
+            arch_names.append(name)
+
+    _write_search_summary_artifacts(
+        output_dir=output_dir,
+        arch_names=arch_names,
+        save_plots=cfg["artifacts"]["save_plots"],
+    )
+
+
 def run_search(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.device) -> None:
     output_dir = cfg["output_dir"]
     ensure_dir(output_dir)
@@ -290,6 +376,11 @@ def run_search(cfg: Dict, arch_cfg: Dict, search_space: Dict, device: torch.devi
     save_yaml(
         os.path.join(output_dir, "search_meta.yaml"),
         {"search_training_seed": cfg["seed"]},
+    )
+    _write_search_summary_artifacts(
+        output_dir=output_dir,
+        arch_names=[arch["name"] for arch in architectures],
+        save_plots=cfg["artifacts"]["save_plots"],
     )
 
 

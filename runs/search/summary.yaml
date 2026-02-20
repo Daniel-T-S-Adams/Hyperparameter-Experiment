@@ -1,188 +1,49 @@
 architectures:
 - architecture:
-    name: mlp_2x_256x128_do0.1_a0.015
-    layers: &id001
-    - 256
-    - 128
-    dropout: 0.1
-    leaky_relu_alpha: 0.015
-  best_validation_loss: 0.07269885051250458
+    name: mlp_3x_252x32x16
+    layers:
+    - 252
+    - 32
+    - 16
+  best_validation_loss: 0.09136837371587753
   test_loss_stats:
-    mean: 0.07155051373004913
-    var: 1.4504153545842403e-06
-    min: 0.07024207887649536
-    max: 0.07375147296190261
+    mean: 0.08476113968372345
+    var: 5.814857616808167e-06
+    min: 0.0812172233581543
+    max: 0.08733116456270218
 - architecture:
-    name: mlp_2x_256x128_do0.1_a0.045
-    layers: *id001
-    dropout: 0.1
-    leaky_relu_alpha: 0.045
-  best_validation_loss: 0.0729573225736618
-  test_loss_stats:
-    mean: 0.0723926889204979
-    var: 3.3734435511337e-06
-    min: 0.07065345627069473
-    max: 0.07577980625629425
-- architecture:
-    name: mlp_2x_256x128_do0.3_a0.015
-    layers: *id001
-    dropout: 0.3
-    leaky_relu_alpha: 0.015
-  best_validation_loss: 0.0693151005268097
-  test_loss_stats:
-    mean: 0.06668573979616166
-    var: 8.874208947006168e-07
-    min: 0.0648853001832962
-    max: 0.06747835483551025
-- architecture:
-    name: mlp_2x_256x128_do0.3_a0.045
-    layers: *id001
-    dropout: 0.3
-    leaky_relu_alpha: 0.045
-  best_validation_loss: 0.07023532928228378
-  test_loss_stats:
-    mean: 0.0684347619509697
-    var: 2.062306421198413e-06
-    min: 0.06586358921527863
-    max: 0.06969241431951523
-- architecture:
-    name: mlp_2x_192x192_do0.1_a0.015
-    layers: &id002
+    name: mlp_3x_192x126x64
+    layers:
     - 192
-    - 192
-    dropout: 0.1
-    leaky_relu_alpha: 0.015
-  best_validation_loss: 0.07223420474529266
+    - 126
+    - 64
+  best_validation_loss: 0.07731628079414368
   test_loss_stats:
-    mean: 0.071507141456604
-    var: 4.551937201453343e-06
-    min: 0.06883601570129394
-    max: 0.07491250092983245
+    mean: 0.07702184605360031
+    var: 4.522489212766577e-06
+    min: 0.07287386833429337
+    max: 0.07861412553787231
 - architecture:
-    name: mlp_2x_192x192_do0.1_a0.045
-    layers: *id002
-    dropout: 0.1
-    leaky_relu_alpha: 0.045
-  best_validation_loss: 0.07282660471200943
+    name: mlp_3x_126x126x126
+    layers:
+    - 126
+    - 126
+    - 126
+  best_validation_loss: 0.08155428149700165
   test_loss_stats:
-    mean: 0.0734348613023758
-    var: 1.7088754215042755e-06
-    min: 0.07168427813053131
-    max: 0.07527493653297425
+    mean: 0.07969758518695831
+    var: 1.5797127077760884e-06
+    min: 0.07857645694017411
+    max: 0.08207383307218552
 - architecture:
-    name: mlp_2x_192x192_do0.3_a0.015
-    layers: *id002
-    dropout: 0.3
-    leaky_relu_alpha: 0.015
-  best_validation_loss: 0.07146452685594559
+    name: mlp_3x_286x16x16
+    layers:
+    - 286
+    - 16
+    - 16
+  best_validation_loss: 0.09070520352125168
   test_loss_stats:
-    mean: 0.06966895416736603
-    var: 1.2694059762883672e-06
-    min: 0.06782108359336853
-    max: 0.07119010289907456
-- architecture:
-    name: mlp_2x_192x192_do0.3_a0.045
-    layers: *id002
-    dropout: 0.3
-    leaky_relu_alpha: 0.045
-  best_validation_loss: 0.07167600119113922
-  test_loss_stats:
-    mean: 0.0715678818655014
-    var: 1.3685303053771798e-06
-    min: 0.06985703752040863
-    max: 0.07308649308681488
-- architecture:
-    name: mlp_3x_192x192x128_do0.1_a0.015
-    layers: &id003
-    - 192
-    - 192
-    - 128
-    dropout: 0.1
-    leaky_relu_alpha: 0.015
-  best_validation_loss: 0.07757620370388031
-  test_loss_stats:
-    mean: 0.07482479606628419
-    var: 1.093932707260055e-06
-    min: 0.07399058673381806
-    max: 0.07668479068279266
-- architecture:
-    name: mlp_3x_192x192x128_do0.1_a0.045
-    layers: *id003
-    dropout: 0.1
-    leaky_relu_alpha: 0.045
-  best_validation_loss: 0.07889630397558212
-  test_loss_stats:
-    mean: 0.07597159366130829
-    var: 2.0652463275574664e-06
-    min: 0.07420950593948364
-    max: 0.07838706170320511
-- architecture:
-    name: mlp_3x_192x192x128_do0.3_a0.015
-    layers: *id003
-    dropout: 0.3
-    leaky_relu_alpha: 0.015
-  best_validation_loss: 0.07718679691553115
-  test_loss_stats:
-    mean: 0.07832689227342605
-    var: 1.5207539231787022e-05
-    min: 0.07292521396875382
-    max: 0.08286401891708374
-- architecture:
-    name: mlp_3x_192x192x128_do0.3_a0.045
-    layers: *id003
-    dropout: 0.3
-    leaky_relu_alpha: 0.045
-  best_validation_loss: 0.07605777772665023
-  test_loss_stats:
-    mean: 0.0784586880326271
-    var: 9.701704742747745e-06
-    min: 0.07417810449600219
-    max: 0.0830486867427826
-- architecture:
-    name: mlp_4x_128x128x128x128_do0.1_a0.015
-    layers: &id004
-    - 128
-    - 128
-    - 128
-    - 128
-    dropout: 0.1
-    leaky_relu_alpha: 0.015
-  best_validation_loss: 0.08329001196622848
-  test_loss_stats:
-    mean: 0.08857624576091766
-    var: 4.452372329248459e-06
-    min: 0.08625668826103211
-    max: 0.09241097514629364
-- architecture:
-    name: mlp_4x_128x128x128x128_do0.1_a0.045
-    layers: *id004
-    dropout: 0.1
-    leaky_relu_alpha: 0.045
-  best_validation_loss: 0.08452916569709777
-  test_loss_stats:
-    mean: 0.08881782755374909
-    var: 4.058316966037341e-06
-    min: 0.08537049224376679
-    max: 0.0910415978193283
-- architecture:
-    name: mlp_4x_128x128x128x128_do0.3_a0.015
-    layers: *id004
-    dropout: 0.3
-    leaky_relu_alpha: 0.015
-  best_validation_loss: 0.09164395116567611
-  test_loss_stats:
-    mean: 0.09718435454845428
-    var: 1.8245863593901403e-05
-    min: 0.08939292788505554
-    max: 0.1013780960559845
-- architecture:
-    name: mlp_4x_128x128x128x128_do0.3_a0.045
-    layers: *id004
-    dropout: 0.3
-    leaky_relu_alpha: 0.045
-  best_validation_loss: 0.08698715106248855
-  test_loss_stats:
-    mean: 0.08793821750164033
-    var: 7.696212899257318e-06
-    min: 0.08354728821516037
-    max: 0.09216496659517288
+    mean: 0.08859651385307313
+    var: 4.710203995849503e-06
+    min: 0.08487039625644684
+    max: 0.09068019704818725

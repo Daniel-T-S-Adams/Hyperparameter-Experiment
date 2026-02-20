@@ -1,0 +1,97 @@
+architectures:
+- architecture:
+    name: mlp_3x_252x32x16
+    layers:
+    - 252
+    - 32
+    - 16
+  best_validation_loss: 0.09136837371587753
+  test_loss_stats:
+    mean: 0.08476113968372345
+    var: 5.814857616808167e-06
+    min: 0.0812172233581543
+    max: 0.08733116456270218
+- architecture:
+    name: mlp_3x_248x32x92
+    layers:
+    - 248
+    - 32
+    - 92
+  best_validation_loss: 0.08015703139305115
+  test_loss_stats:
+    mean: 0.08018462087631226
+    var: 1.3048798167679584e-06
+    min: 0.07884757735729217
+    max: 0.08163681166172028
+- architecture:
+    name: mlp_3x_244x48x56
+    layers:
+    - 244
+    - 48
+    - 56
+  best_validation_loss: 0.08057633074522018
+  test_loss_stats:
+    mean: 0.07759356551647187
+    var: 2.31225865615531e-06
+    min: 0.07609611189365387
+    max: 0.08048441753387452
+- architecture:
+    name: mlp_3x_216x120x84
+    layers:
+    - 216
+    - 120
+    - 84
+  best_validation_loss: 0.07308326507806778
+  test_loss_stats:
+    mean: 0.07751559059381485
+    var: 3.4769299545502497e-06
+    min: 0.07479911714792252
+    max: 0.08031281609535218
+- architecture:
+    name: mlp_3x_188x192x112
+    layers:
+    - 188
+    - 192
+    - 112
+  best_validation_loss: 0.07554245445728303
+  test_loss_stats:
+    mean: 0.07691021100044251
+    var: 9.366292314157309e-07
+    min: 0.07552677834033966
+    max: 0.07817567040920258
+- architecture:
+    name: mlp_3x_160x264x140
+    layers:
+    - 160
+    - 264
+    - 140
+  best_validation_loss: 0.07805726261138916
+  test_loss_stats:
+    mean: 0.08008427704095841
+    var: 7.673136409454217e-06
+    min: 0.07564389116764068
+    max: 0.08298925683498383
+- architecture:
+    name: mlp_3x_160x204x224
+    layers:
+    - 160
+    - 204
+    - 224
+  best_validation_loss: 0.0730956686258316
+  test_loss_stats:
+    mean: 0.07950314941883088
+    var: 4.9171122760141005e-06
+    min: 0.07574873098134995
+    max: 0.08215409789085389
+- architecture:
+    name: mlp_3x_120x204x408
+    layers:
+    - 120
+    - 204
+    - 408
+  best_validation_loss: 0.07975701868534088
+  test_loss_stats:
+    mean: 0.08427788801431656
+    var: 1.8552692430617182e-06
+    min: 0.08224352836608886
+    max: 0.08651487970352173

@@ -65,7 +65,36 @@ Architecture combinations are defined in `configs/architectures.yaml` as a grid 
 
 ## Running Experiments
 
-All phases are launched via `run_experiment.py` with a `--phase` flag and a phase-specific `--config` file.
+All phases are launched via `run_experiment.py` with a `--phase` flag.
+
+For a single end-to-end experiment (search then transfer), use `--phase run` (recommended). It auto-creates a unique run directory so previous runs are never overwritten.
+
+### One-Command Run (Recommended)
+
+Runs search and transfer back-to-back with automatically linked output directories:
+
+- Search output: `<run_dir>/search`
+- Transfer output: `<run_dir>/transfer`
+- Transfer automatically reads from `<run_dir>/search`
+
+```bash
+python run_experiment.py \
+  --phase run \
+  --defaults configs/defaults.yaml \
+  --search-space configs/search_space.yaml \
+  --architectures configs/architectures.yaml \
+  --search-config configs/search.yaml \
+  --transfer-config configs/transfer.yaml
+```
+
+By default, `run_dir` is auto-named as:
+
+- `runs/<project_name>_<YYYYMMDD_HHMMSS>/`
+
+Optional overrides:
+
+- `--runs-root runs/my_batch` to change where auto-named run directories are created
+- `--run-name my_custom_name` to provide an explicit run directory name (a numeric suffix is added if needed to avoid collisions)
 
 ### Search Phase — Per-Architecture Tuning & Retrain
 
@@ -96,6 +125,27 @@ Edit `configs/search.yaml` to configure:
 - `retrain/seed_N/config.yaml` — per-seed retrain configuration and test loss
 - `retrain/seed_losses.csv` — test loss for each seed
 - `summary.yaml` — test loss statistics (mean, variance, min, max) across seeds
+
+Additional search-level outputs (in `output_dir/`):
+
+- `summary.yaml` — per-architecture summary list
+- `search_meta.yaml` — metadata (e.g., search training seed)
+- `search_seed_losses.csv` — combined per-seed test losses for all architectures
+- `search_test_loss_stats.csv` — combined per-architecture test-loss stats (mean/var/min/max)
+- `search_test_loss_over_seeds.png` — architecture-wise test-loss distribution over retrain seeds
+
+### Search Report — Visualize Existing Search Summary
+
+Generates the search summary visualization and combined CSVs from existing search outputs (no retraining).
+
+```bash
+python run_experiment.py \
+  --phase search_report \
+  --defaults configs/defaults.yaml \
+  --search-space configs/search_space.yaml \
+  --architectures configs/architectures.yaml \
+  --config configs/search.yaml
+```
 
 ### Transfer Phase — Hyperparameter Transfer & Regret Analysis
 
@@ -129,11 +179,8 @@ Edit `configs/transfer.yaml` to configure:
 ## Typical Workflow
 
 ```bash
-# 1. Run per-architecture hyperparameter search (start with num_trials=10-30, adjust if needed)
-python run_experiment.py --phase search --config configs/search.yaml
-
-# 2. Run transfer experiment (set search_dir in transfer.yaml to match search output_dir)
-python run_experiment.py --phase transfer --config configs/transfer.yaml
+# Run search + transfer in one auto-named run directory
+python run_experiment.py --phase run
 ```
 
 **For testing**: Before running the full experiment, test with a subset of architectures and fewer trials to verify everything works.

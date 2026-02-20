@@ -1,0 +1,12 @@
+architecture:
+  name: mlp_3x_188x192x112
+  layers:
+  - 188
+  - 192
+  - 112
+best_validation_loss: 0.07554245445728303
+test_loss_stats:
+  mean: 0.07691021100044251
+  var: 9.366292314157309e-07
+  min: 0.07552677834033966
+  max: 0.07817567040920258
